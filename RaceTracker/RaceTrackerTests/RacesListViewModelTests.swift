@@ -14,10 +14,7 @@ final class RacesListViewModelTests: XCTestCase {
 
     override func setUp() {
         super.setUp()
-        // Initialize the mock API manager and reset any necessary properties
         mockAPIManager = MockAPIManager()
-
-        // Initialize viewModel asynchronously
         let expectation = self.expectation(description: "viewModel initialized")
         Task {
             await MainActor.run {
@@ -29,56 +26,106 @@ final class RacesListViewModelTests: XCTestCase {
     }
 
     override func tearDown() {
-        // Clean up viewModel and mockAPIManager
         viewModel = nil
         mockAPIManager = nil
         super.tearDown()
     }
 
-    // Test: Success loading race data
-    func testLoadRaceDataSuccess() async {
-        // Arrange: Prepare mock race data
+    // Test: Fetch race data successfully
+    func testFetchRaceData_withValidCategory_shouldReturnRaces() async {
+        // Given
         let raceData = setupMockRaceData()
         mockAPIManager.mockRaceData = raceData
-
-        // Act: Load data using the view model
+        // When
         await viewModel.loadRacesData(categoryIDs: [RaceCategories.horseRacing, RaceCategories.harnessRacing])
-
-        // Assert: Check if races are loaded correctly
+        // Then
         await MainActor.run {
             XCTAssertEqual(viewModel.races.count, 2)
             XCTAssertNil(viewModel.errorMessage)
         }
     }
 
-    // Test: Failure loading race data
-    func testLoadRaceDataFailure() async {
-        // Arrange: Simulate an error
+    func testFetchRaceData_withInvalidCategory_shouldReturnError() async {
+        // Given
         mockAPIManager.shouldReturnError = true
-
-        // Act: Attempt to load data
+        // When
         await viewModel.loadRacesData(categoryIDs: [RaceCategories.horseRacing])
-
-        // Assert: Check if error is handled correctly
+        // Then
         await MainActor.run {
             XCTAssertEqual(viewModel.races.count, 0)
             XCTAssertEqual(viewModel.errorMessage, "Failed to load race data: Mocked error")
         }
     }
 
-    // Test: Filtering races by category
-    func testRaceFilterByCategory() async {
-        // Arrange: Prepare mock race data
+    func testFetchRaceData_withCategoryFilter_shouldReturnFilteredRaces() async {
+        // Given
         let raceData = setupMockRaceData()
         mockAPIManager.mockRaceData = raceData
-
-        // Act: Load data with category filter
+        // When
         await viewModel.loadRacesData(categoryIDs: [RaceCategories.horseRacing])
-
-        // Assert: Check if the filtered races are correct
+        // Then
         await MainActor.run {
             XCTAssertEqual(viewModel.races.count, 1)
             XCTAssertTrue(viewModel.races.allSatisfy { $0.categoryID == RaceCategories.horseRacing })
+        }
+    }
+
+    func testFetchRaceData_withEmptyRaceData_shouldReturnNoRaces() async {
+        // Given
+        let emptyRaceData = RaceData(nextToGoIDS: [], raceSummaries: [:])
+        mockAPIManager.mockRaceData = emptyRaceData
+
+        // When
+        await viewModel.loadRacesData(categoryIDs: [RaceCategories.horseRacing])
+
+        // Then
+        await MainActor.run {
+            XCTAssertEqual(viewModel.races.count, 0)
+            XCTAssertNil(viewModel.errorMessage)
+        }
+    }
+
+    func testFetchRaceData_withInvalidRaceData_shouldReturnNoRace() async {
+        // Given:
+        let invalidRaceData = RaceData(
+            nextToGoIDS: ["1"],
+            raceSummaries: [
+                "1": RaceSummary(
+                    raceID: "1",
+                    raceNumber: 1,
+                    meetingName: "",
+                    categoryID: RaceCategories.horseRacing,
+                    startTime: StartTime(seconds: 0)
+                )
+            ]
+        )
+        mockAPIManager.mockRaceData = invalidRaceData
+        // When
+        await viewModel.loadRacesData(categoryIDs: [RaceCategories.horseRacing])
+        // Then
+        await MainActor.run {
+            XCTAssertEqual(viewModel.races.count, 0)
+        }
+    }
+
+    func testRaceDataRefresh_shouldUpdateData() async {
+        // Given
+        let initialRaceData = setupMockRaceData()
+        mockAPIManager.mockRaceData = initialRaceData
+        // When
+        await viewModel.loadRacesData(categoryIDs: [RaceCategories.horseRacing])
+        // Then:
+        await MainActor.run {
+            XCTAssertEqual(viewModel.races.count, 1)
+        }
+        // Given
+        let updatedRaceData = setupMockRaceData()
+        mockAPIManager.mockRaceData = updatedRaceData
+        // When:
+        await viewModel.loadRacesData(categoryIDs: [RaceCategories.horseRacing])
+        // Then
+        await MainActor.run {
+            XCTAssertEqual(viewModel.races.count, 1)
         }
     }
 
@@ -115,5 +162,4 @@ final class RacesListViewModelTests: XCTestCase {
             ]
         )
     }
-
 }

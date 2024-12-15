@@ -97,7 +97,7 @@ struct RaceDetailsRow: View {
 
     /// Starts the countdown timer that updates the remaining time every second.
     func startTimer() {
-        Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { timer in
+        Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
             remainingSeconds -= 1
         }
     }

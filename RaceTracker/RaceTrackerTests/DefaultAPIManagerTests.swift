@@ -193,11 +193,11 @@ final class URLProtocolMock: URLProtocol {
     static var testURLs: [URL: (Data, HTTPURLResponse)] = [:]
     static var error: Error?
 
-    override class func canInit(with request: URLRequest) -> Bool {
+    override static func canInit(with request: URLRequest) -> Bool {
         return true
     }
 
-    override class func canonicalRequest(for request: URLRequest) -> URLRequest {
+    override static func canonicalRequest(for request: URLRequest) -> URLRequest {
         return request
     }
 
